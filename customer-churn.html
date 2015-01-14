@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+        <meta charset="utf-8" />
+        <title>Customer Churn</title>
+        <link rel="stylesheet" href="/theme/css/main.css" />
+
+        <!--[if IE]>
+            <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+</head>
+
+<body id="index" class="home">
+        <header id="banner" class="body">
+                <h1><a href="/">Models are always wrong </a></h1>
+                <nav><ul>
+                    <li class="active"><a href="/category/data-science.html">data science</a></li>
+                    <li><a href="/category/misc.html">misc</a></li>
+                </ul></nav>
+        </header><!-- /#banner -->
+<section id="content" class="body">
+  <article>
+    <header>
+      <h1 class="entry-title">
+        <a href="/customer-churn.html" rel="bookmark"
+           title="Permalink to Customer Churn">Customer Churn</a></h1>
+    </header>
+
+    <div class="entry-content">
+<footer class="post-info">
+        <abbr class="published" title="2015-01-12T18:41:00+01:00">
+                Published: Mon 12 January 2015
+        </abbr>
+
+        <address class="vcard author">
+                By                         <a class="url fn" href="/author/peadar-coyle.html">Peadar Coyle</a>
+        </address>
+<p>In <a href="/category/data-science.html">data science</a>. </p>
+<p>tags: <a href="/tag/data-science.html">data science</a> </p>
+</footer><!-- /.post-info -->      
+  <div tabindex="-1" id="notebook" class="border-box-sizing">
+    <div class="container" id="notebook-container">
+
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>&quot;Churn Rate&quot; is a business term describing the rate at which customers leave or cease paying for a product or service. It&#39;s a critical figure in many businesses, as it&#39;s often the case that acquiring new customers is a lot more costly than retaining existing ones (in some cases, 5 to 20 times more expensive).</p>
+<p>Understanding what keeps customers engaged, therefore, is incredibly valuable, as it is a logical foundation from which to develop retention strategies and roll out operational practices aimed to keep customers from walking out the door. Consequently, there&#39;s growing interest among companies to develop better churn-detection techniques, leading many to look to data mining and machine learning for new and creative approaches.</p>
+<p>Predicting churn is particularly important for businesses w/ subscription models such as cell phone, cable, or merchant credit card processing plans. But modeling churn has wide reaching applications in many domains. For example, casinos have used predictive models to predict ideal room conditions for keeping patrons at the blackjack table and when to reward unlucky gamblers with front row seats to Celine Dion. Similarly, airlines may offer first class upgrades to complaining customers. The list goes on.</p>
+<p>This is a post about modeling customer churn using Python.</p>
+<p>One of the motivations for modelling this is to consider what would happen in a telecoms setting. </p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[1]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<span class="n">churn_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s">&#39;data/churn.csv&#39;</span><span class="p">,</span> <span class="p">)</span>
+<span class="n">col_names</span> <span class="o">=</span> <span class="n">churn_df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">&quot;Column names:&quot;</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">col_names</span><span class="p">)</span>
+
+<span class="n">to_show</span> <span class="o">=</span> <span class="n">col_names</span><span class="p">[:</span><span class="mi">6</span><span class="p">]</span> <span class="o">+</span> <span class="n">col_names</span><span class="p">[</span><span class="o">-</span><span class="mi">6</span><span class="p">:]</span>
+
+<span class="k">print</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">Sample data:&quot;</span><span class="p">)</span>
+<span class="n">churn_df</span><span class="p">[</span><span class="n">to_show</span><span class="p">]</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>
+Column names:
+[&apos;State&apos;, &apos;Account Length&apos;, &apos;Area Code&apos;, &apos;Phone&apos;, &quot;Int&apos;l Plan&quot;, &apos;VMail Plan&apos;, &apos;VMail Message&apos;, &apos;Day Mins&apos;, &apos;Day Calls&apos;, &apos;Day Charge&apos;, &apos;Eve Mins&apos;, &apos;Eve Calls&apos;, &apos;Eve Charge&apos;, &apos;Night Mins&apos;, &apos;Night Calls&apos;, &apos;Night Charge&apos;, &apos;Intl Mins&apos;, &apos;Intl Calls&apos;, &apos;Intl Charge&apos;, &apos;CustServ Calls&apos;, &apos;Churn?&apos;]
+
+Sample data:
+
+</pre>
+</div>
+</div>
+
+<div class="output_area"><div class="prompt output_prompt">
+    Out[1]:</div>
+
+<div class="output_html rendered_html output_subarea output_pyout">
+<div style="max-height:1000px;max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>State</th>
+      <th>Account Length</th>
+      <th>Area Code</th>
+      <th>Phone</th>
+      <th>Int'l Plan</th>
+      <th>VMail Plan</th>
+      <th>Night Charge</th>
+      <th>Intl Mins</th>
+      <th>Intl Calls</th>
+      <th>Intl Charge</th>
+      <th>CustServ Calls</th>
+      <th>Churn?</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td> KS</td>
+      <td> 128</td>
+      <td> 415</td>
+      <td> 382-4657</td>
+      <td>  no</td>
+      <td> yes</td>
+      <td> 11.01</td>
+      <td> 10.0</td>
+      <td> 3</td>
+      <td> 2.70</td>
+      <td> 1</td>
+      <td> False.</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td> OH</td>
+      <td> 107</td>
+      <td> 415</td>
+      <td> 371-7191</td>
+      <td>  no</td>
+      <td> yes</td>
+      <td> 11.45</td>
+      <td> 13.7</td>
+      <td> 3</td>
+      <td> 3.70</td>
+      <td> 1</td>
+      <td> False.</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td> NJ</td>
+      <td> 137</td>
+      <td> 415</td>
+      <td> 358-1921</td>
+      <td>  no</td>
+      <td>  no</td>
+      <td>  7.32</td>
+      <td> 12.2</td>
+      <td> 5</td>
+      <td> 3.29</td>
+      <td> 0</td>
+      <td> False.</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td> OH</td>
+      <td>  84</td>
+      <td> 408</td>
+      <td> 375-9999</td>
+      <td> yes</td>
+      <td>  no</td>
+      <td>  8.86</td>
+      <td>  6.6</td>
+      <td> 7</td>
+      <td> 1.78</td>
+      <td> 2</td>
+      <td> False.</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td> OK</td>
+      <td>  75</td>
+      <td> 415</td>
+      <td> 330-6626</td>
+      <td> yes</td>
+      <td>  no</td>
+      <td>  8.41</td>
+      <td> 10.1</td>
+      <td> 3</td>
+      <td> 2.73</td>
+      <td> 3</td>
+      <td> False.</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td> AL</td>
+      <td> 118</td>
+      <td> 510</td>
+      <td> 391-8027</td>
+      <td> yes</td>
+      <td>  no</td>
+      <td>  9.18</td>
+      <td>  6.3</td>
+      <td> 6</td>
+      <td> 1.70</td>
+      <td> 0</td>
+      <td> False.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="survival-analysis">Survival Analysis</h1>
+<p> One interesting way is to use Survival analysis. The basic idea of &#39;survival analysis&#39; is to estimate using some fancy statistics the &#39;survival curve&#39;. In the case of telecommunications this is when a subscriber will leave the service. In the case of HR - the question might be &#39;what characteristics do employees who leave our company have?&#39;. 
+ There are many interesting applications of survival analysis</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[2]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight"><pre><span class="c">#Firstly let us look at the column headings.</span>
+<span class="n">churn_df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt output_prompt">
+    Out[2]:</div>
+
+
+<div class="output_text output_subarea output_pyout">
+<pre>
+&lt;bound method Index.tolist of Index([&apos;State&apos;, &apos;Account Length&apos;, &apos;Area Code&apos;, &apos;Phone&apos;, &apos;Int&apos;l Plan&apos;, &apos;VMail Plan&apos;, &apos;VMail Message&apos;, &apos;Day Mins&apos;, &apos;Day Calls&apos;, &apos;Day Charge&apos;, &apos;Eve Mins&apos;, &apos;Eve Calls&apos;, &apos;Eve Charge&apos;, &apos;Night Mins&apos;, &apos;Night Calls&apos;, &apos;Night Charge&apos;, &apos;Intl Mins&apos;, &apos;Intl Calls&apos;, &apos;Intl Charge&apos;, &apos;CustServ Calls&apos;, &apos;Churn?&apos;], dtype=&apos;object&apos;)&gt;
+</pre>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[3]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight"><pre><span class="c">#We noted above that Churn had string values. The lifelines library that we&#39;ll use doesn&#39;t like that and prefers 1 and 0.</span>
+<span class="c"># So we transform this.</span>
+<span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;True.&#39;</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="s">&#39;False.&#39;</span><span class="p">:</span><span class="mi">0</span><span class="p">}</span>
+<span class="n">churn_df</span><span class="p">[</span><span class="s">&#39;Churn?&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">churn_df</span><span class="p">[[</span><span class="s">&#39;Churn?&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">applymap</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="n">x</span><span class="p">])</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[4]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight"><pre><span class="c">#Let us look again at the head of the data. </span>
+<span class="n">churn_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt output_prompt">
+    Out[4]:</div>
+
+<div class="output_html rendered_html output_subarea output_pyout">
+<div style="max-height:1000px;max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>State</th>
+      <th>Account Length</th>
+      <th>Area Code</th>
+      <th>Phone</th>
+      <th>Int'l Plan</th>
+      <th>VMail Plan</th>
+      <th>VMail Message</th>
+      <th>Day Mins</th>
+      <th>Day Calls</th>
+      <th>Day Charge</th>
+      <th>...</th>
+      <th>Eve Calls</th>
+      <th>Eve Charge</th>
+      <th>Night Mins</th>
+      <th>Night Calls</th>
+      <th>Night Charge</th>
+      <th>Intl Mins</th>
+      <th>Intl Calls</th>
+      <th>Intl Charge</th>
+      <th>CustServ Calls</th>
+      <th>Churn?</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td> KS</td>
+      <td> 128</td>
+      <td> 415</td>
+      <td> 382-4657</td>
+      <td>  no</td>
+      <td> yes</td>
+      <td> 25</td>
+      <td> 265.1</td>
+      <td> 110</td>
+      <td> 45.07</td>
+      <td>...</td>
+      <td>  99</td>
+      <td> 16.78</td>
+      <td> 244.7</td>
+      <td>  91</td>
+      <td> 11.01</td>
+      <td> 10.0</td>
+      <td> 3</td>
+      <td> 2.70</td>
+      <td> 1</td>
+      <td> 0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td> OH</td>
+      <td> 107</td>
+      <td> 415</td>
+      <td> 371-7191</td>
+      <td>  no</td>
+      <td> yes</td>
+      <td> 26</td>
+      <td> 161.6</td>
+      <td> 123</td>
+      <td> 27.47</td>
+      <td>...</td>
+      <td> 103</td>
+      <td> 16.62</td>
+      <td> 254.4</td>
+      <td> 103</td>
+      <td> 11.45</td>
+      <td> 13.7</td>
+      <td> 3</td>
+      <td> 3.70</td>
+      <td> 1</td>
+      <td> 0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td> NJ</td>
+      <td> 137</td>
+      <td> 415</td>
+      <td> 358-1921</td>
+      <td>  no</td>
+      <td>  no</td>
+      <td>  0</td>
+      <td> 243.4</td>
+      <td> 114</td>
+      <td> 41.38</td>
+      <td>...</td>
+      <td> 110</td>
+      <td> 10.30</td>
+      <td> 162.6</td>
+      <td> 104</td>
+      <td>  7.32</td>
+      <td> 12.2</td>
+      <td> 5</td>
+      <td> 3.29</td>
+      <td> 0</td>
+      <td> 0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td> OH</td>
+      <td>  84</td>
+      <td> 408</td>
+      <td> 375-9999</td>
+      <td> yes</td>
+      <td>  no</td>
+      <td>  0</td>
+      <td> 299.4</td>
+      <td>  71</td>
+      <td> 50.90</td>
+      <td>...</td>
+      <td>  88</td>
+      <td>  5.26</td>
+      <td> 196.9</td>
+      <td>  89</td>
+      <td>  8.86</td>
+      <td>  6.6</td>
+      <td> 7</td>
+      <td> 1.78</td>
+      <td> 2</td>
+      <td> 0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td> OK</td>
+      <td>  75</td>
+      <td> 415</td>
+      <td> 330-6626</td>
+      <td> yes</td>
+      <td>  no</td>
+      <td>  0</td>
+      <td> 166.7</td>
+      <td> 113</td>
+      <td> 28.34</td>
+      <td>...</td>
+      <td> 122</td>
+      <td> 12.61</td>
+      <td> 186.9</td>
+      <td> 121</td>
+      <td>  8.41</td>
+      <td> 10.1</td>
+      <td> 3</td>
+      <td> 2.73</td>
+      <td> 3</td>
+      <td> 0</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 21 columns</p>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>We can see that some subscribers in this list have not churned -- censorship! </p>
+<p>Before we dig in to the data, I first need to introduce the first mathematical creature in survival analysis: the survival function! </p>
+<h2 id="survival-function">Survival function</h2>
+<p>Define an subsribers lifetime, defined as the time between when they first purchase the subsription and when they churned, as capital $T$. Let small $t$ represent number of days from when they were first subsribe that is, since there &quot;birth&quot;. Then the survival function, $S(t)$, is defined as:</p>
+<p>$$ S(t) = P(T &gt; t ) $$
+What is the probability that a randomly chosen individual from the population lasts longer than small t?</p>
+<p>The survival curve actually gives as a perfect description of the lifespans of a population. But, its never given to us, we need to estimate it using the data at hand.</p>
+<h2 id="kaplan-meier-estimate">Kaplan-Meier estimate</h2>
+<p>IMO, the best way to estimate the survival function is using the Kaplan-Meier estimate. It&#39;s nonparametric, which means we don&#39;t assume the data follows any particular form:</p>
+<p>$$\hat{S(t)} = \prod_{i=0}^t \left(1 - \frac{d_i}{n_i}\right), \;\; \text{for all $t$}$$</p>
+<p>where $d_i$ are number of deaths at time $i$, and $n_i$ are the number of individuals in the population who are at risk of dieing. Note that the above formula is for a specific $t$: if we compute this estimate over all $t$, then we get a curve - we&#39;ll see this later.</p>
+<p>This formula can be derived from the following logic:</p>
+<p>$$P( T = 0 ) \approx \frac{d_0}{n_0}$$ </p>
+<p>$$ \Rightarrow P( T &gt; 0 ) \approx \left(1 - \frac{d_0}{n_0} \right) $$</p>
+<p>$$ P( T &gt; 1 ) = P( T &gt; 1 \;|\; T &gt; 0 )P( T &gt; 0 ) \\ \approx \left(1 - \frac{d_1}{n_1}\right)\left(1 - \frac{d_0}{n_0}\right)$$</p>
+<p>and so on...</p>
+<p>How are censored individuals dealt with in the Kaplan Meier estimate? They are still part of denominator (as they are at risk of dieing), but don&#39;t count into the numerator (as technically they don&#39;t die.)</p>
+<h1 id="estimating-the-survival-curve">Estimating the Survival Curve</h1>
+<ul>
+<li>I am inspired here by Cam Davidson-Pilon and his work on Lifelines.
+We define in the language of Survival analysis the &#39;censoring&#39; event to be when &#39;Churn?&#39; is observed. 
+This can be defined in different ways for different industries. But let us assume we have a well-defined definition of Churn. Which in the case of Telcommunication data is probably &#39;stopping paying for the service&#39;. In other industries like for example Cloud services - it might be harder, but then you can define Churn as &#39;to stop using a service for 30 days&#39;. </li>
+</ul>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[5]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">lifelines</span> <span class="kn">import</span> <span class="n">KaplanMeierFitter</span>
+<span class="n">kmf</span> <span class="o">=</span> <span class="n">KaplanMeierFitter</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[6]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight"><pre><span class="n">T</span> <span class="o">=</span> <span class="n">churn_df</span><span class="p">[</span><span class="s">&quot;Account Length&quot;</span><span class="p">]</span>
+<span class="n">C</span> <span class="o">=</span> <span class="n">churn_df</span><span class="p">[</span><span class="s">&quot;Churn?&quot;</span><span class="p">]</span>
+<span class="n">kmf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="n">event_observed</span><span class="o">=</span><span class="n">C</span> <span class="p">)</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt output_prompt">
+    Out[6]:</div>
+
+
+<div class="output_text output_subarea output_pyout">
+<pre>
+&lt;lifelines.KaplanMeierFitter: fitted with 3333 observations, 2850 censored&gt;
+</pre>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[7]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight"><pre><span class="n">C</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt output_prompt">
+    Out[7]:</div>
+
+
+<div class="output_text output_subarea output_pyout">
+<pre>
+0     0
+1     0
+2     0
+3     0
+4     0
+5     0
+6     0
+7     0
+8     0
+9     0
+10    1
+11    0
+12    0
+13    0
+14    0
+...
+3318    0
+3319    0
+3320    1
+3321    0
+3322    1
+3323    1
+3324    0
+3325    0
+3326    0
+3327    0
+3328    0
+3329    0
+3330    0
+3331    0
+3332    0
+Name: Churn?, Length: 3333, dtype: int64
+</pre>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[8]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight"><pre><span class="n">kmf</span><span class="o">.</span><span class="n">survival_function_</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt output_prompt">
+    Out[8]:</div>
+
+<div class="output_html rendered_html output_subarea output_pyout">
+<div style="max-height:1000px;max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>KM-estimate</th>
+    </tr>
+    <tr>
+      <th>timeline</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0  </th>
+      <td> 1.000000</td>
+    </tr>
+    <tr>
+      <th>1  </th>
+      <td> 0.999700</td>
+    </tr>
+    <tr>
+      <th>2  </th>
+      <td> 0.999399</td>
+    </tr>
+    <tr>
+      <th>3  </th>
+      <td> 0.999399</td>
+    </tr>
+    <tr>
+      <th>4  </th>
+      <td> 0.999399</td>
+    </tr>
+    <tr>
+      <th>5  </th>
+      <td> 0.999399</td>
+    </tr>
+    <tr>
+      <th>6  </th>
+      <td> 0.999399</td>
+    </tr>
+    <tr>
+      <th>7  </th>
+      <td> 0.999399</td>
+    </tr>
+    <tr>
+      <th>8  </th>
+      <td> 0.999399</td>
+    </tr>
+    <tr>
+      <th>9  </th>
+      <td> 0.999399</td>
+    </tr>
+    <tr>
+      <th>10 </th>
+      <td> 0.999399</td>
+    </tr>
+    <tr>
+      <th>11 </th>
+      <td> 0.999399</td>
+    </tr>
+    <tr>
+      <th>12 </th>
+      <td> 0.999097</td>
+    </tr>
+    <tr>
+      <th>13 </th>
+      <td> 0.998794</td>
+    </tr>
+    <tr>
+      <th>15 </th>
+      <td> 0.998794</td>
+    </tr>
+    <tr>
+      <th>16 </th>
+      <td> 0.998490</td>
+    </tr>
+    <tr>
+      <th>17 </th>
+      <td> 0.997881</td>
+    </tr>
+    <tr>
+      <th>18 </th>
+      <td> 0.997881</td>
+    </tr>
+    <tr>
+      <th>19 </th>
+      <td> 0.997576</td>
+    </tr>
+    <tr>
+      <th>20 </th>
+      <td> 0.997576</td>
+    </tr>
+    <tr>
+      <th>21 </th>
+      <td> 0.997270</td>
+    </tr>
+    <tr>
+      <th>22 </th>
+      <td> 0.997270</td>
+    </tr>
+    <tr>
+      <th>23 </th>
+      <td> 0.996657</td>
+    </tr>
+    <tr>
+      <th>24 </th>
+      <td> 0.995736</td>
+    </tr>
+    <tr>
+      <th>25 </th>
+      <td> 0.995429</td>
+    </tr>
+    <tr>
+      <th>26 </th>
+      <td> 0.995429</td>
+    </tr>
+    <tr>
+      <th>27 </th>
+      <td> 0.995121</td>
+    </tr>
+    <tr>
+      <th>28 </th>
+      <td> 0.994812</td>
+    </tr>
+    <tr>
+      <th>29 </th>
+      <td> 0.994503</td>
+    </tr>
+    <tr>
+      <th>30 </th>
+      <td> 0.994503</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>184</th>
+      <td> 0.555625</td>
+    </tr>
+    <tr>
+      <th>185</th>
+      <td> 0.555625</td>
+    </tr>
+    <tr>
+      <th>186</th>
+      <td> 0.555625</td>
+    </tr>
+    <tr>
+      <th>188</th>
+      <td> 0.546365</td>
+    </tr>
+    <tr>
+      <th>189</th>
+      <td> 0.546365</td>
+    </tr>
+    <tr>
+      <th>190</th>
+      <td> 0.546365</td>
+    </tr>
+    <tr>
+      <th>191</th>
+      <td> 0.546365</td>
+    </tr>
+    <tr>
+      <th>192</th>
+      <td> 0.546365</td>
+    </tr>
+    <tr>
+      <th>193</th>
+      <td> 0.533356</td>
+    </tr>
+    <tr>
+      <th>194</th>
+      <td> 0.533356</td>
+    </tr>
+    <tr>
+      <th>195</th>
+      <td> 0.533356</td>
+    </tr>
+    <tr>
+      <th>196</th>
+      <td> 0.533356</td>
+    </tr>
+    <tr>
+      <th>197</th>
+      <td> 0.516151</td>
+    </tr>
+    <tr>
+      <th>199</th>
+      <td> 0.516151</td>
+    </tr>
+    <tr>
+      <th>200</th>
+      <td> 0.516151</td>
+    </tr>
+    <tr>
+      <th>201</th>
+      <td> 0.496299</td>
+    </tr>
+    <tr>
+      <th>202</th>
+      <td> 0.496299</td>
+    </tr>
+    <tr>
+      <th>204</th>
+      <td> 0.496299</td>
+    </tr>
+    <tr>
+      <th>205</th>
+      <td> 0.496299</td>
+    </tr>
+    <tr>
+      <th>208</th>
+      <td> 0.468727</td>
+    </tr>
+    <tr>
+      <th>209</th>
+      <td> 0.441155</td>
+    </tr>
+    <tr>
+      <th>210</th>
+      <td> 0.441155</td>
+    </tr>
+    <tr>
+      <th>212</th>
+      <td> 0.404392</td>
+    </tr>
+    <tr>
+      <th>215</th>
+      <td> 0.404392</td>
+    </tr>
+    <tr>
+      <th>217</th>
+      <td> 0.404392</td>
+    </tr>
+    <tr>
+      <th>221</th>
+      <td> 0.404392</td>
+    </tr>
+    <tr>
+      <th>224</th>
+      <td> 0.336993</td>
+    </tr>
+    <tr>
+      <th>225</th>
+      <td> 0.252745</td>
+    </tr>
+    <tr>
+      <th>232</th>
+      <td> 0.252745</td>
+    </tr>
+    <tr>
+      <th>243</th>
+      <td> 0.252745</td>
+    </tr>
+  </tbody>
+</table>
+<p>213 rows × 1 columns</p>
+</div>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>So we can say something like after 200 days about 50% of our distribution have churned. And after 243 days about 75% have churned. 
+I don&#39;t have any experience with the telecoms industry but this would corrobrate my preconceptions. </p>
+<h1 id="plots">Plots</h1>
+<p>The next interesting thing that the survival analysis library can do is to plot a graph. So we&#39;ll do that </p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[9]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight"><pre><span class="n">kmf</span><span class="o">.</span><span class="n">survival_function_</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">import</span> <span class="nn">seaborn</span> <span class="kn">as</span> <span class="nn">sns</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&#39;Survival function of Telecommunication Customers&#39;</span><span class="p">);</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[10]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight"><pre><span class="o">%</span><span class="k">matplotlib</span> <span class="n">inline</span>
+<span class="n">kmf</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt output_prompt">
+    Out[10]:</div>
+
+
+<div class="output_text output_subarea output_pyout">
+<pre>
+&lt;matplotlib.axes._subplots.AxesSubplot at 0xaf0d25ac&gt;
+</pre>
+</div>
+
+</div>
+
+<div class="output_area"><div class="prompt"></div>
+
+
+<div class="output_png output_subarea ">
+<img src="data:image/png;base64,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
+">
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="are-new-yorkers-fickle-">Are New Yorkers fickle?</h1>
+<p>As our final piece of analysis. We can ask the question - &#39;do customers in different states have different churn behaviour?&#39;.
+This could be used as part of a customer sales strategy! </p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[11]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight"><pre><span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+
+<span class="n">NJ</span> <span class="o">=</span> <span class="p">(</span><span class="n">churn_df</span><span class="p">[</span><span class="s">&quot;State&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;NJ&quot;</span><span class="p">)</span>
+<span class="n">kmf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">T</span><span class="p">[</span><span class="n">NJ</span><span class="p">],</span> <span class="n">event_observed</span><span class="o">=</span><span class="n">C</span><span class="p">[</span><span class="n">NJ</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s">&quot;New Jersey&quot;</span><span class="p">)</span>
+<span class="n">kmf</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">ci_force_lines</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+<span class="n">KS</span> <span class="o">=</span> <span class="p">(</span><span class="n">churn_df</span><span class="p">[</span><span class="s">&quot;State&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;KS&quot;</span><span class="p">)</span>
+<span class="n">kmf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">T</span><span class="p">[</span><span class="n">KS</span><span class="p">],</span> <span class="n">event_observed</span><span class="o">=</span><span class="n">C</span><span class="p">[</span><span class="n">KS</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s">&quot;Kansas&quot;</span><span class="p">)</span>
+<span class="n">NY</span> <span class="o">=</span> <span class="p">(</span><span class="n">churn_df</span><span class="p">[</span><span class="s">&quot;State&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;NY&quot;</span><span class="p">)</span>
+<span class="n">kmf</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">T</span><span class="p">[</span><span class="n">NY</span><span class="p">],</span> <span class="n">event_observed</span><span class="o">=</span><span class="n">C</span><span class="p">[</span><span class="n">NY</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s">&quot;New York&quot;</span><span class="p">)</span>
+<span class="n">kmf</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">ci_force_lines</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">);</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&quot;Lifespans of customers in different states&quot;</span><span class="p">);</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt"></div>
+
+
+<div class="output_png output_subarea ">
+<img src="data:image/png;base64,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
+">
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[12]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight"><pre><span class="n">kmf</span><span class="o">.</span><span class="n">median_</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+<div class="output_wrapper">
+<div class="output">
+
+
+<div class="output_area"><div class="prompt output_prompt">
+    Out[12]:</div>
+
+
+<div class="output_text output_subarea output_pyout">
+<pre>
+168.0
+</pre>
+</div>
+
+</div>
+
+</div>
+</div>
+
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>So we see that the median user stays 168 days which is realistic</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">
+In&nbsp;[12]:
+</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class="highlight"><pre> 
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
+    </div>
+  </div>
+
+    </div><!-- /.entry-content -->
+
+  </article>
+</section>
+        <section id="extras" class="body">
+                <div class="blogroll">
+                        <h2>blogroll</h2>
+                        <ul>
+                            <li><a href="http://getpelican.com/">Pelican</a></li>
+                            <li><a href="http://python.org/">Python.org</a></li>
+                            <li><a href="http://jinja.pocoo.org/">Jinja2</a></li>
+                            <li><a href="#">You can modify those links in your config file</a></li>
+                        </ul>
+                </div><!-- /.blogroll -->
+                <div class="social">
+                        <h2>social</h2>
+                        <ul>
+
+                            <li><a href="#">You can add links in your config file</a></li>
+                            <li><a href="#">Another social link</a></li>
+                        </ul>
+                </div><!-- /.social -->
+        </section><!-- /#extras -->
+
+        <footer id="contentinfo" class="body">
+                <address id="about" class="vcard body">
+                Proudly powered by <a href="http://getpelican.com/">Pelican</a>, which takes great advantage of <a href="http://python.org">Python</a>.
+                </address><!-- /#about -->
+
+                <p>The theme is by <a href="http://coding.smashingmagazine.com/2009/08/04/designing-a-html-5-layout-from-scratch/">Smashing Magazine</a>, thanks!</p>
+        </footer><!-- /#contentinfo -->
+
+</body>
+</html>
